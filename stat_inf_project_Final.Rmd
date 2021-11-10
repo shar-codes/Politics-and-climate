@@ -1,0 +1,267 @@
+---
+title: "Statistical inference with the GSS data"
+output:
+  html_document:
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+  pdf_document: default
+  word_document: default
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(corrplot)
+```
+
+### Load data
+
+```{r load-data}
+load("~/R Inferential Statistics Project ( Course 2)/_5db435f06000e694f6050a2d43fc7be3_gss.RData")
+
+```
+* * *
+
+## Part 1: Data 
+"The General Social Survey (GSS) monitors societial change and studyies the growing complexity of American society. The GSS aims to gather data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes; to examine the structure and functioning of society ; to compare the United States to other societies in order to place American society in comparative perspective and develop cross-national models of human society; and to make high-quality data easily accessible." - Duke University Data and Visualisation Services.
+
+For this project we'll use an extract of the GSS curated by the Duke University where factor variables have been created as appropriate and missing values have been dealt with to some extent.
+ 
+The data is collected by random sampling and assigment so is generalizable to the the population of the United States.   
+This is an observational study so causality cannot be inferred.
+
+* * *
+
+## Part 2: Research question
+
+In her book "This Changes Evertyhing", Naomi Klein explores the links between capitalism and climate change, specifically delving into the likelihood of finding climate solutions within the capitalistic framework.In this treatise, she also ventures the possibility of an individuals political inclinations influencing their conceptions of climate change. 
+
+In 2011, the Harris Poll recorded an alarming trend in the United States - The overall belief in the validity of the climate change crisis seemed to be on the decline.  A 2011 version of the poll reported that 71% of all Americans believed that continued burning of fossil fuels would harm the environment. In June of 2011 however that number was down to 44%. While the numbers rebounded somewhat in recent years, a worrying trend stuck around. Climate and Political Scientists noticed that there was a difference in opinion about climate change between people affiliated with different political ideologies. Conservatively inclined people were less likely to accept the scientific consensus on climate change than their liberal counterparts. 
+I want to test to what extent, if any, this bifurcation of opinions about climate change along political lines still exists. 
+
+**QUESTION 1** : Does the data provide convincing evidence of a difference in opinion about public spending on environment related developement between people who hold opposing ideological beliefs. 
+
+*Note*:  I will be using the citizens inclination to spend their tax money on certain subject as a metric for how prominent or urgent they perceive said subject to be. 
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+ 
+*Variables of interest :*    
+1.Polviews- describes political affialation of respondent   
+2.natenvir - describes respondant propensity to spend public funds on environment 
+```{r}
+summary(gss$polviews)
+```
+Most of the respondents are on the liberal side of the spectrum and a large NA frequency is observed. 
+```{r}
+summary(gss$natenvir)
+```
+It's pleasing to note most respondants concur that we're spending too little or about the right amount on environment spending. However we must keep in mind that the sample has a higher proportion of individuals that identify as liberal and that conclusions about our hypothesis shouldn't be drawn at this stage.  
+
+There are a large amount of NA values and the data pool almost halves. But is still large enough for conditions for inference to hold.      
+Let's create a subset of the gss data with only our variables of interest and get rid of the NA values before proceeding. 
+```{r}
+#Creating a seperate dataframe containing only columns of interest
+GssEnv <- data.frame(gss$natenvir, gss$polviews)
+names(GssEnv) <- c("natenvir","polviews")
+
+#removing na values 
+GssEnv <- na.omit(GssEnv)
+
+#Making segmented graph to visualise data
+ggplot(data = GssEnv, aes(x=polviews, fill = natenvir)) +
+geom_bar(position = "fill") +
+labs(y= "Proportion") +
+theme(axis.text.x = element_text(angle = 13))
+
+```
+ 
+ We can tell that as you move from the liberal end of the spectrum to the conservative end, the people who perceive that we're spending too little, steadily and neatly decrease. While the numbers of those who think we're spending too much steadily increase. 
+ 
+One could choose to use a Chi Sq Test of independence here, but since we want to evaluate a difference,and gauge the margin and direction of said difference(as opposed to merrily drawing evidence of association)- I will transform the existing variables to categorical variables with 2 levels each as highlighted below.
+ 
+ * * *
+## Part 4 : Methodology 
+
+* **Data Transformation**    
+   + The variable natenvir has 3 levels : "Too Little", "About right" and "Too much". I will categorise the "Too Little and About right responses as generally Pro"-environment spending and "Too Much" as 'Against' it, in a new variable called EnvSpend.     
+   + Polviews describes respondants leftist or rightist inclinations on a scale of extremely liberal to extremely conservative. I will categorise extremely or slightly conservative as in general conservatively inclined and extremely or slightly liberal as generally left inclined.       
+We will now use these 2 newly made categorical variables with 2 levels to perform a 2 sided hypothesis test for difference in proportions.   
+*RESPONSE Variable*> EnvSpend - categorical - 2 levels ( "Pro", "Against")      
+*EXPLANATORY Variable*> Cons_Lib - categorical - 2 levels ("Conservative", "Liberal")
+
+* **Inference**
+We then conduct a hypothesis test with    
+HO: p1-p2 = 0, there is no difference between the proportion of people who support environment spending between liberal and conservative minded people        
+HA: p1-p2 != 0, there is a difference between the proportion of people who support environment spending between liberal and conservative minded people    
+       ( where p1= proportion of liberalists who support env spending and p2= propertion of conservatives who support env spending)   
+      
+*Note*: Here we will use the inference function of the dplyr package to perform theoretical inference, but if we were performing operations by hand we would have to calculate Ppool to compute the SE value. 
+
+## Part 5: Inference 
+
+Before getting started, let's perform necessary data tranformations.
+```{r}
+#Adding variable EnvSpend to reflect is respondant is for or against environment spending 
+GssEnv <- mutate(GssEnv, EnvSpend = ifelse(GssEnv$natenvir=="Too Much","Against","Pro"))
+
+#Adding variable Cons_Lib to reflect is respondant is liberal or conservative
+GssEnv1 <- mutate(GssEnv, cons_lib = ifelse(GssEnv$polviews == "Slightly Conservative" | polviews == "Conservative"| polviews == "Extrmly Conservative", "Conservative", "Liberal"))
+```
+
+**EVALUATING CONDITIONS**    
+
+* **Independence**    
+  + *Within group independence*: the data collection method ensured random sampling and given the size of the United States population, 9,029 < 10% of conservatives and 17953 < 10% of liberals. So within group independence holds    
+  + *Between groups*: We have no reason to suspect sampled liberals and democrats to be dependent, given random sampling and how one individual is unlikely to hold oppossing beliefs. 
+
+* **Sample Size/Skew**   
+     + While calculating SE and checking conditions for hypothesis tests involving proportions, we use the null or expected proportion instead of the sampled proportion.     Since here we are simply stating that the 2 proportion be equal and not speciying a null value we will have to estimate said value using a pooled proportion.    
+     Given by total success in group 1 + total successes in group 2/ n1+n2 
+
+```{r}
+#calculating pooled proportion 
+#total successes across group 1 and group 2 (toal np. of yes)
+count(GssEnv1, EnvSpend)
+#n1 + n2 _ ie  no.of conservatives + no.of liberals ( total respondants)
+count(GssEnv1, cons_lib)
+#find Ppool
+24558/(9029+17953)
+```
+Here liberals -    
+n_lib(Ppool) = 16337.23 > 10    
+n_lib( 1- Ppool)= 1615.77 > 10     
+And conservatives-     
+n_con(Ppool)= 8216.39 > 10    
+n_con(1-Ppool) = 812.61 > 10     
+so the conditions for inference hold      
+
+**BUILDING CONFIDENCE LEVEL.**
+
+```{r}
+inference(y=EnvSpend, x= cons_lib, data = GssEnv1, statistic = "proportion",type = "ci", method = "theoretical", success = "Pro")
+```
+
+*Sample statistic*: the difference in proportions observed in the sample is -0.0725. ( p_conservative- p_liberal)
+ie according to the sample liberals are 7.25% more likely to support spending on environmental issues. 
+
+At the 95% confidence level, the confidence interval is : (-0.0805, -0.646) with a margin of error of 0.0079
+
+```{r}
+inference( y=EnvSpend, x=cons_lib, data = GssEnv1,statistic = "proportion", type = "ht", null = 0, alternative = "twosided", method = "theoretical", success = "Pro")
+```
+
+
+We obtain a large Z Score, that yeilds a tiny P Value of <0.0001
+
+*P-Value interpretation here*    
+The probabality of finding a sample where the difference in proorption of people who support environmant spending across supporters of opposing political ideologies is 0.0725 or more or -0.0725 or less, given that there is no difference in proportion of people who support environmental spending across  ( aka the null hypothesis is true) is < 0.0001.     
+( P-value = probability of finding observed or more extreme outcome| null hypothesis is true)
+
+**RESULT**
+Since the P-value is tiny,we reject the null hypothesis and conclude that the data does indeed provide convincng evidence that the propensity of conservatives and liberals to spend on environmental issues varies.     
+The results of the hypothesis test agree with the confidence interval we constructed earlier. We rejected the null hypothesis, and indeed the null value ( here 0) lies outside our confidence interval. 
+
+
+## QUESTIOn 2    
+
+I want to examine if people opinions on abortion are independent of party affiliation or if there is indeed statistically significant interdependence between the 2 variables.    
+(Here we are looking for evidence of association between 2 variables.)     
+*Variables used*:   
+abany >opinion on abortion in any circumstance > 2 levels  
+partyid > party affiliation > 8 levels
+
+```{r}
+summary(gss$abany)
+summary(gss$partyid)
+```
+
+Once again, let's create a new dataset with only our variables of interest and remove the NA values.
+
+```{r}
+#creating new dataset with only variables of interest
+Abor_party <- data.frame(gss$abany, gss$partyid)
+names(Abor_party) <- c("abany", "party")
+
+#omitting na values
+Abor_party <- na.omit(Abor_party)
+```
+
+We'll employ a chi-square test of independence as we're dealing with 2 categorical varible where one has more than 2 levels     
+Let's use a mosaic plot to visualise the data:
+
+```{r}
+#creating basic mosaic plot
+plot(table(Abor_party$party, Abor_party$abany))
+```
+
+
+Though not very pronounced, the entries near the republican end seem to demonstrate more negative responses to the question of abortion.
+
+**CHI SQ TEST OF INDEPENDENCE**
+
+H0: The variables in question are independent     
+HA: the variables in question are interdependent.    
+
+**CHECKING CONDITIONS** 
+
+1.*Independence*: GSS dataset is generated from a random sample survey. So we can assume the records are independent
+2.*Sample Size*: 31656 < 10% of all citizens in the United States
+3.*Expected Counts* : 
+```{r}
+chisq.test(Abor_party$party, Abor_party$abany)$expected
+```
+
+    Each cell contains at least an expected count of 5 so all conditions are satisfied and we may proceed with inference.
+
+We'll first create a contingency table : 
+```{r}
+#creating frequency table
+attach( Abor_party)
+mytable <- table(party, abany)
+frequen_table <- as.data.frame.matrix(mytable)
+detach(Abor_party)
+
+#Use R to perform Chi Square Test
+chisq <-chisq.test(frequen_table)
+chisq
+```
+
+ We observe a tiny P-value and can reject the null at the 5% significance level and conclude that there is indeed strong evidence of interdependence between people's political party affiliation and their views on abortion and that these 2 variables are indeed statistically significantly associated.     
+ 
+ To get a picture of each cells contribution to the large Chi-Sq statistic, let's use a Correlation plot to get a comparitive visual of the Pearson's residuals. 
+```{r}
+library(corrplot)
+corrplot(chisq$residuals, is.corr = FALSE, cl.ratio = 0.65, cl.align.text = "l")
+
+```
+
+*NOTE*: We have not as yet commented on nature of association(linear or otherwise) and this isn't a correlation matrix plot, hence argument "is.corr" is set to false. 
+ 
+ * In the plot,blue circles indicate a positive association and red a negative one. The size of circle and intensity of colour descibe the extent of association. Larger circles with deeper colours speak to large deviation and larger contributions to chi sq value
+ 
+* Here, our plot illustrates that Strong Republicans were overwhelmingly against Abortion and there is a large deviation in the negative direaction from the values that would be expected if there was indeed no bias on the basis of political party affiliation.    
+In conjunction to that finding, people harbouring an affinity for the democratic party, respond in the positive to abortion more frequently than expected.    
+It is interesting to note this positive deviation is more pronounced with people "near democrats" than further down the spectrum at "strong democrat". Could be an area of further study.
+
+**RESULT**
+The Chi Sq test provides strong evidence that there is indeed an association between the political party a respondant supports and his views on abortion. 
+The plot of Pearson residuals further hints that respondants with strong republican ideals tend to be oppossed to abortion vis-a-vis their liberal counterparts. 
+
+NOTE TO READER : Results obtained in this treatise are only generalisable to the population of the United States as the study was conducted in that part of the globe and the  demographic of this sample may not accurately represent global populations.
+
+*SOURCES*    
+~Duke Visualisation and Statistical Services     
+~Harris Poll of 2007 and 2011        
+~"This Changes Everything", Naomi Klein 
+
+ ****
+ 
