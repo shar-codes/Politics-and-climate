@@ -1,2 +1,6 @@
 # Politics-and-climate
 A look into how political ideologies influence environmental perceptions
+
+In her book “This Changes Evertyhing”, Naomi Klein explores the links between capitalism and climate change, specifically delving into the likelihood of finding climate solutions within the capitalistic framework.In this treatise, she also ventures the possibility of an individuals political inclinations influencing their conceptions of climate change.
+
+In 2011, the Harris Poll recorded an alarming trend in the United States - The overall belief in the validity of the climate change crisis seemed to be on the decline. A 2011 version of the poll reported that 71% of all Americans believed that continued burning of fossil fuels would harm the environment. In June of 2011 however that number was down to 44%. While the numbers rebounded somewhat in recent years, a worrying trend stuck around. Climate and Political Scientists noticed that there was a difference in opinion about climate change between people affiliated with different political ideologies. Conservatively inclined people were less likely to accept the scientific consensus on climate change than their liberal counterparts. I want to test to what extent, if any, this bifurcation of opinions about climate change along political lines still exists.
